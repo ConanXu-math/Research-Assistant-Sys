@@ -1,129 +1,106 @@
-# OptiBench-AGI
+# Research Assistant Sys（科研助手系统）
 
-Automated optimisation-paper benchmarking pipeline built on the **Agno** multi-agent framework.
+- 仓库：<https://github.com/ConanXu-math/research-assistant-sys>
+- 若本地仍指向旧远程 `OptiBench-AGI`，在 GitHub 完成重命名后执行：  
+  `git remote set-url origin https://github.com/ConanXu-math/research-assistant-sys.git`
 
-The system searches arXiv, extracts mathematical formulations, generates validated Python solvers, and produces Lean 4 formal statements — all orchestrated by four specialised AI agents.
+这是一个基于 **Agno** 的科研助手系统。
 
-## Architecture
+当前已落地的专家是「论文结构化提取专家」，目标是：
 
-```
-┌──────────────┐     ┌──────────────────┐     ┌──────────────┐     ┌────────────────────┐
-│ Research Agent│ ──▶ │ Extraction Agent  │ ──▶ │ Coding Agent │ ──▶ │ Formalization Agent │
-│ (arXiv+PDF)  │     │ (→ MathOutline)   │     │ (Python+pseudo)   │ (Lean 4)            │
-└──────────────┘     └──────────────────┘     └───────┬──────┘     └─────────┬──────────┘
-                                                      │ retry ≤ 3           │ retry ≤ 3
-                                                      ▼                     ▼
-                                               validate_python        validate_lean
-```
+- 搜索并下载 arXiv 论文
+- 将 PDF 转为 Markdown
+- 从论文中提取结构化优化问题（`MathOutline`）
 
-## Quick Start
+> 当前版本以“论文结构化提取专家”为主，其它专家可在 `experts/` 按相同接口继续扩展。
+
+## 三层架构
+
+项目按三层组织：
+
+- `interface/`：交互层（CLI / REPL 入口）
+- `orchestrator/`：编排层（任务路由、执行、提取工作流）
+- `experts/`：专家层（当前包含论文检索、定位、结构化提取等专家）
+
+同时保留基础能力层：
+
+- `foundation/`：配置、模型、适配器、执行框架、通用错误
+
+## 快速开始
 
 ```bash
-# 1. Install (core dependencies)
+# 1) 安装（包名 research-assistant-sys；命令行入口 researchsys，仍保留 optibench 别名）
 uv pip install -e .
 
-# 2. Install PDF converter (choose one)
-uv pip install -e ".[marker]"   # marker-pdf (recommended)
-# or
-uv pip install -e ".[nougat]"   # nougat-ocr
+# 2) 可选：安装更高质量 PDF 解析后端
+uv pip install -e ".[marker]"   # 推荐
+# 或
+uv pip install -e ".[nougat]"
 
-# 3. Set your API key
+# 3) 配置模型 API（示例）
 export OPENAI_API_KEY="sk-..."
 
-# 4. Run
+# 4) 运行提取
 python main.py "convex optimisation relaxation techniques"
 
-# Or target a specific paper
-python main.py --arxiv-id 2301.12345
+# 指定论文
+python main.py --arxiv-id 1406.0899
 ```
 
-## Tools (no API key required)
-
-Standalone commands for searching and downloading papers, or converting PDFs:
+## 常用命令
 
 ```bash
-# Search arXiv and print results
+# 搜索
 python main.py search "convex optimisation" --max 5
 
-# Download a paper by arXiv ID (PDF + optional Markdown)
+# 下载（PDF + 可选 Markdown）
 python main.py download 1406.0899
-python main.py download 1406.0899 --output ./papers --no-convert   # PDF only
+python main.py download 1406.0899 --output ./dataset --no-convert
 
-# Convert a local PDF to Markdown (requires marker or nougat)
+# 本地 PDF 转 Markdown
 python main.py convert-pdf path/to/paper.pdf -o paper.md
 
-# List processed papers in dataset/
+# 查看数据集条目
 python main.py list
-python main.py list --dataset-root ./dataset
 
-# Show metadata for an arXiv ID (title, authors, abstract)
+# 查看论文元数据
 python main.py info 1406.0899
+
+# REPL
+python main.py repl --dataset-root ./dataset --top-k 5 --workers 1
 ```
 
-## Configuration
+## 输出结构
 
-All configuration is via environment variables:
+论文提取专家每次运行输出到 `dataset/<arxiv_id>/`，核心文件为：
 
-| Variable | Default | Description |
-|---|---|---|
-| `OPENAI_API_KEY` | — | OpenAI API key (required for default provider) |
-| `OPTIBENCH_PROVIDER` | `openai` | LLM provider: `openai`, `anthropic`, `google` |
-| `OPTIBENCH_MODEL` | `gpt-4o` | Model identifier |
-| `OPTIBENCH_PY_TIMEOUT` | `120` | Python validation timeout (seconds) |
-| `OPTIBENCH_LEAN_TIMEOUT` | `300` | Lean 4 build timeout (seconds) |
-| `OPTIBENCH_LEAN_PROJECT_DIR` | — | Pre-built Lean+Mathlib project path (speeds up validation) |
-| `OPTIBENCH_MARKER_TIMEOUT` | `300` | marker PDF conversion timeout |
+- `paper.md`：论文 Markdown（若可用）
+- `outline.json`：结构化提取结果
+- `result.json`：简化结果索引
+- `pipeline_metrics.json`：阶段指标（可选）
 
-## Output Structure
+## 关键环境变量
 
-Each processed paper produces a folder under `./dataset/<arxiv_id>/`:
+| 变量 | 默认值 | 说明 |
+| --- | --- | --- |
+| `OPTIBENCH_PROVIDER` | `openai` | 模型提供方 |
+| `OPTIBENCH_MODEL` | `gpt-4o` | 模型 ID |
+| `OPTIBENCH_WORKERS` | `1` | 批处理并发数 |
+| `OPTIBENCH_DOMAIN` | `continuous` | arXiv 过滤域 |
+| `OPTIBENCH_EXTRACTION_STRATEGY` | `unified` | `unified` / `locator_first` / `auto` |
+| `OPTIBENCH_EXTRACT_MAX_CHARS` | `24000` | 提取输入裁切上限 |
+| `OPTIBENCH_ARXIV_TIMEOUT` | `120` | arXiv 请求超时秒数 |
 
-```
-dataset/
-└── 2301.12345/
-    ├── benchmark.json   # Complete BenchmarkItem
-    ├── outline.json     # MathOutline only
-    ├── solve.py         # Validated Python solver
-    ├── pseudocode.txt   # Algorithm pseudocode
-    └── Formal.lean      # Lean 4 theorem statements
-```
+## 当前目录（精简后）
 
-## Data Models
-
-- **NotationItem** — `(symbol, dimension, description)`
-- **MathOutline** — `(objective, constraints, variables, notation_table)`
-- **BenchmarkItem** — `(paper_name, arxiv_id, outline, prove_cot, pseudocode, pycode, lean4_formal)`
-
-## Lean 4 Validation
-
-For Lean 4 validation you need:
-
-1. **elan** — the Lean toolchain installer
-2. A project with **Mathlib** dependency
-
-Fastest approach: pre-build a Lean project once and set `OPTIBENCH_LEAN_PROJECT_DIR`:
-
-```bash
-mkdir lean-check && cd lean-check
-lake init OptiBenchCheck math
-lake build   # first build downloads Mathlib (~10 min)
-export OPTIBENCH_LEAN_PROJECT_DIR=$(pwd)
-```
-
-## Project Layout
-
-```
-├── main.py              # CLI entry point
-├── workflow.py           # OptiBenchWorkflow orchestrator
-├── schema/
-│   └── models.py         # Pydantic data models
-├── agents/
-│   ├── research.py       # arXiv search + PDF conversion
-│   ├── extraction.py     # Markdown → MathOutline
-│   ├── coding.py         # MathOutline → Python + pseudocode
-│   └── formalization.py  # MathOutline → Lean 4
-├── toolkits/
-│   ├── validators.py     # validate_python_code / validate_lean_code
-│   └── pdf_converter.py  # marker / nougat PDF→Markdown
-└── pyproject.toml
+```text
+.
+├── main.py
+├── interface/
+├── orchestrator/
+├── experts/
+├── foundation/
+├── docs/
+├── scripts/
+└── dataset/
 ```

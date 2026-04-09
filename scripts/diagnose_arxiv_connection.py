@@ -39,7 +39,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-ARXIV_API_BASE = os.getenv("OPTIBENCH_ARXIV_BASE_URL", "https://export.arxiv.org").strip().rstrip("/")
+ARXIV_API_BASE = (os.getenv("OPTIBENCH_ARXIV_BASE_URL") or "").strip().rstrip("/")
+if not ARXIV_API_BASE:
+    ARXIV_API_BASE = "https://export.arxiv.org"
 if not ARXIV_API_BASE.startswith(("http://", "https://")):
     ARXIV_API_BASE = "https://" + ARXIV_API_BASE
 TEST_URL = f"{ARXIV_API_BASE}/api/query?search_query=all:electron&max_results=1&start=0"
@@ -57,7 +59,11 @@ def main() -> None:
 
     try:
         import requests
-        resp = requests.get(TEST_URL, timeout=timeout_sec, headers={"User-Agent": "OptiBench-AGI-diagnose/1.0"})
+        resp = requests.get(
+            TEST_URL,
+            timeout=timeout_sec,
+            headers={"User-Agent": "Research-Assistant-Sys-diagnose/1.0"},
+        )
         status = resp.status_code
         body = resp.content
     except Exception as e:

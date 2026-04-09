@@ -49,7 +49,7 @@ def prompt_choice(prompt: str, choices: list[str], default: str) -> str:
 
 def interactive_pipeline_args() -> argparse.Namespace:
     """Collect all pipeline arguments from interactive prompts."""
-    print("\n=== OptiBench 交互式配置 ===")
+    print("\n=== Research Assistant Sys 交互式配置 ===")
 
     provider = prompt_choice(
         "LLM Provider",
@@ -97,6 +97,7 @@ def interactive_pipeline_args() -> argparse.Namespace:
 
     dataset_root = prompt_str("输出目录 dataset_root", "./dataset")
     top_k = prompt_int("top-k 论文数", 5)
+    workers = prompt_int("批处理并发 workers", int(os.getenv("OPTIBENCH_WORKERS", "1")))
     max_retries = prompt_int("代码/形式化最大重试次数", 3)
     domain = prompt_choice("论文领域过滤", ["continuous", "all"], "continuous")
     skip_lean = prompt_bool("跳过 Lean 4 形式化", True)
@@ -111,6 +112,7 @@ def interactive_pipeline_args() -> argparse.Namespace:
         max_retries=max_retries,
         domain=domain,
         top_k=top_k,
+        workers=workers,
         skip_lean=skip_lean,
         allow_empty_outline=allow_empty_outline,
         verbose=verbose,
