@@ -1,15 +1,5 @@
 # Research Assistant Sys（科研助手系统）
 
-- 目标仓库名：**research-assistant-sys**（与 PyPI/uv 包名一致）
-- 在 GitHub 上打开原仓库 **Settings → General → Repository name**，改名为 `research-assistant-sys` 并保存（GitHub 会对旧 URL 做重定向）。
-- 改名完成后，本地执行：  
-  `git remote set-url origin https://github.com/ConanXu-math/research-assistant-sys.git`  
-  再 `git push -u origin main`。
-- 在 GitHub 尚未改名前，远程仍可指向  
-  `https://github.com/ConanXu-math/OptiBench-AGI.git`（当前默认），以便正常 `git push`。
-- 本地目录名建议与仓库名一致，例如：  
-  `git clone https://github.com/ConanXu-math/OptiBench-AGI.git research-assistant-sys`
-
 这是一个基于 **Agno** 的科研助手系统。
 
 当前已落地的专家是「论文结构化提取专家」，目标是：
