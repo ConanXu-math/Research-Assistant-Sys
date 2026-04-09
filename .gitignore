@@ -11,3 +11,7 @@ wheels/
 
 # Environment (secrets)
 .env
+
+# Local runs & scratch (do not commit)
+dataset/
+tmp/

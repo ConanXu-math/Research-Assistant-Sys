@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from toolkits.paper_tools import get_arxiv_info, search_arxiv, download_paper
-from toolkits.pdf_converter import convert_pdf_to_markdown
+from foundation.adapters.paper_tools import get_arxiv_info, search_arxiv, download_paper
+from foundation.adapters.pdf_converter import convert_pdf_to_markdown
 
 
 def cmd_search(query: str, max_results: int = 10, domain: str = "continuous") -> None:
@@ -52,12 +52,13 @@ def cmd_list(dataset_root: str) -> None:
     for d in sorted(root.iterdir()):
         if not d.is_dir() or d.name.startswith("."):
             continue
-        bench = d / "benchmark.json"
-        if bench.exists():
+        result_file = d / "result.json"
+        if result_file.exists():
             try:
-                data = json.loads(bench.read_text(encoding="utf-8"))
-                arxiv_id = data.get("arxiv_id", d.name)
-                paper_name = data.get("paper_name", d.name)
+                data = json.loads(result_file.read_text(encoding="utf-8"))
+                meta = data.get("meta", {}) if isinstance(data, dict) else {}
+                arxiv_id = meta.get("arxiv_id", d.name)
+                paper_name = meta.get("paper_name", d.name)
             except Exception:
                 arxiv_id = d.name
                 paper_name = d.name
