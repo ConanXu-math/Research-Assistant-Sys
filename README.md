@@ -7,6 +7,8 @@
   再 `git push -u origin main`。
 - 在 GitHub 尚未改名前，远程仍可指向  
   `https://github.com/ConanXu-math/OptiBench-AGI.git`（当前默认），以便正常 `git push`。
+- 本地目录名建议与仓库名一致，例如：  
+  `git clone https://github.com/ConanXu-math/OptiBench-AGI.git research-assistant-sys`
 
 这是一个基于 **Agno** 的科研助手系统。
 
